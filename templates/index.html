@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Food Recommender</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <div class="container">
+    <h1>USDA Food Recommender</h1>
+    <p>Enter a User ID (1–500) to get personalized recommendations.</p>
+
+    <form method="POST">
+      <input type="number" name="user_id" placeholder="User ID" required />
+      <input type="text" name="query" placeholder="e.g., healthy lunch under 600 cal" />
+      <button type="submit">Recommend</button>
+    </form>
+
+    {% if error %}
+      <p class="error">{{ error }}</p>
+    {% endif %}
+
+    {% if selected_user %}
+      <h2>Top 10 Recommendations for User {{ selected_user }}</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Food</th>
+            <th>Predicted Rating</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for food_id, rating, name in recommendations %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ name }} (ID: {{ food_id }})</td>
+            <td>{{ "%.2f" % rating }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    <details>
+      <summary>Show all User IDs</summary>
+      <p><small>{{ users|join(', ') }}</small></p>
+    </details>
+  </div>
+</body>
+</html>

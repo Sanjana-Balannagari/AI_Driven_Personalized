@@ -1,0 +1,29 @@
+# Virtual environment
+myenv/
+env/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Sensitive data
+.env
+openai_api_key.txt
+
+# Large data
+data/*.csv
+data/*.zip
+
+# Model & output (too big for GitHub)
+output/
+*.pkl
+*.npz
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
