@@ -1,123 +1,83 @@
 # preprocess.py
 import pandas as pd
 import numpy as np
-from scipy.sparse import csr_matrix, save_npz
 import os
 
-# ================================
-# CONFIGURATION
-# ================================
-DATA_PATH = "data/food.csv"  # <-- Updated path
+# === CONFIG ===
+DATA_PATH = "data/food.csv"
+FOOD_NUTRIENT_PATH = "data/food_nutrient.csv"
+NUTRIENT_PATH = "data/nutrient.csv"
 OUTPUT_DIR = "output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-
 INTERACTIONS_CSV = os.path.join(OUTPUT_DIR, "interactions_filtered.csv")
-MATRIX_CSV       = os.path.join(OUTPUT_DIR, "user_item_matrix.csv")
-SPARSE_NPZ       = os.path.join(OUTPUT_DIR, "user_item_sparse.npz")
-USER_MAP_CSV     = os.path.join(OUTPUT_DIR, "user_id_map.csv")
-ITEM_MAP_CSV     = os.path.join(OUTPUT_DIR, "item_id_map.csv")
 
-MAX_CALORIES       = 600
-CATEGORIES_TO_KEEP = ["Vegetables", "Fruits", "Grains", "Proteins"]
-
-print(f"Loading dataset from {DATA_PATH}...")
+# === LOAD FOOD DATA ===
+print(f"Loading food.csv from {DATA_PATH}...")
 df = pd.read_csv(DATA_PATH, low_memory=False)
-print(f"Original rows: {df.shape[0]}, columns: {list(df.columns)}")
+print(f"Original rows: {len(df)}")
 
-# ------------------------------------------------------------------
-# 1. Detect columns
-# ------------------------------------------------------------------
-def find_col(candidates):
-    for c in candidates:
-        if c in df.columns:
-            return c
-    return None
+# === LOAD FOOD_NUTRIENT ===
+print("Loading food_nutrient.csv...")
+food_nutrients = pd.read_csv(FOOD_NUTRIENT_PATH, low_memory=False)
+print(f"food_nutrient rows: {len(food_nutrients)}")
 
-food_id_col   = find_col(['fdc_id', 'NDB_number', 'id'])
-food_name_col = find_col(['description', 'food_description', 'name', 'food_name'])
-calories_col  = find_col(['Energy_kcal', 'calories', 'energy_kcal'])
-category_col  = find_col(['food_category', 'category', 'food_group', 'food_category_id'])
+# === LOAD NUTRIENT DEFINITIONS ===
+print("Loading nutrient.csv...")
+nutrient_df = pd.read_csv(NUTRIENT_PATH, low_memory=False)
 
-if food_id_col is None:
-    raise KeyError("No food ID column found.")
+# === MERGE CALORIES (nutrient_id = 1008 → Energy KCAL) ===
+print("\nMerging calories (nutrient_id = 1008 for Energy in KCAL)...")
+df['fdc_id'] = df['fdc_id'].astype(str)
+food_nutrients['fdc_id'] = food_nutrients['fdc_id'].astype(str)
 
-print(f"Detected → id:{food_id_col}, name:{food_name_col}, calories:{calories_col}, category:{category_col}")
+energy_data = food_nutrients[food_nutrients['nutrient_id'] == 1008]
+print(f"Energy (1008) rows: {len(energy_data)}")
+energy_map = dict(zip(energy_data['fdc_id'], energy_data['amount']))
+df['Energy (KCAL)'] = df['fdc_id'].map(energy_map).fillna(np.nan)
+print(f"Added Energy (KCAL): {df['Energy (KCAL)'].notna().sum()} values")
 
-# ------------------------------------------------------------------
-# 2. Simulate interactions
-# ------------------------------------------------------------------
+# === ADD PROTEIN, FAT, CARBS ===
+for nid, col in {1003: "Protein (G)", 1004: "Fat (G)", 1005: "Carbs (G)"}.items():
+    data = food_nutrients[food_nutrients['nutrient_id'] == nid]
+    if not data.empty:
+        mapping = dict(zip(data['fdc_id'], data['amount']))
+        df[col] = df['fdc_id'].map(mapping).fillna(np.nan)
+        print(f"Added {col}: {df[col].notna().sum()} values")
+
+# === ENSURE FOOD NAME ===
+df['food_name'] = df['description'].astype(str).str.title()
+
+# === SIMULATE INTERACTIONS ===
 np.random.seed(42)
 n_users = 500
 n_interactions = 12_000
-
 sampled = df.sample(n=n_interactions, replace=True).reset_index(drop=True)
 
 interactions = pd.DataFrame({
     'user_id'   : np.random.randint(1, n_users + 1, size=n_interactions),
-    'food_id'   : sampled[food_id_col].values,
-    'food_name' : sampled[food_name_col].values if food_name_col else sampled[food_id_col].values,
+    'food_id'   : sampled['fdc_id'].values,
+    'food_name' : sampled['food_name'].values,
     'rating'    : np.random.randint(1, 6, size=n_interactions),
 })
 
-if calories_col:
-    interactions['calories'] = sampled[calories_col].values
-else:
-    interactions['calories'] = np.nan
+# Add nutrients
+nutrient_cols = ['Energy (KCAL)', 'Protein (G)', 'Fat (G)', 'Carbs (G)']
+for col in nutrient_cols:
+    if col in df.columns:
+        interactions[col] = sampled[col].values
 
-if category_col:
-    interactions['category'] = sampled[category_col].values
-else:
-    interactions['category'] = 'Unknown'
+# Add category
+interactions['category'] = sampled['food_category_id'].astype(str)
 
-print(f"Simulated {n_interactions} interactions.")
+# === DEDUPLICATE ===
+interactions = interactions.drop_duplicates(subset=['user_id', 'food_id'])
+print(f"After deduplication: {len(interactions)}")
 
-# ------------------------------------------------------------------
-# 3. Filter
-# ------------------------------------------------------------------
-mask = pd.Series([True] * len(interactions))
-
-if MAX_CALORIES is not None and calories_col:
-    mask &= interactions['calories'] < MAX_CALORIES
-
-if CATEGORIES_TO_KEEP and category_col:
-    mask &= interactions['category'].isin(CATEGORIES_TO_KEEP)
-
-filtered = interactions[mask].copy()
-print(f"After filter: {len(filtered)} interactions.")
-
-if len(filtered) == 0:
-    print("Warning: No rows survived – using all data.")
-    filtered = interactions.copy()
-
-# ------------------------------------------------------------------
-# 4. DEDUPLICATE + BUILD MATRIX
-# ------------------------------------------------------------------
-dedup = filtered.drop_duplicates(subset=['user_id', 'food_id'], keep='first')
-print(f"After deduplication: {len(dedup)} unique interactions.")
-
-user_to_idx = {u: i for i, u in enumerate(sorted(dedup['user_id'].unique()))}
-item_to_idx = {i: j for j, i in enumerate(sorted(dedup['food_id'].unique()))}
-
-dedup = dedup.copy()
-dedup['user_idx'] = dedup['user_id'].map(user_to_idx)
-dedup['item_idx'] = dedup['food_id'].map(item_to_idx)
-
-matrix_df = dedup.pivot(index='user_idx', columns='item_idx', values='rating').fillna(0)
-sparse = csr_matrix(matrix_df.values)
-
-print(f"Matrix shape: {matrix_df.shape} (users x items)")
-
-# ------------------------------------------------------------------
-# 5. SAVE
-# ------------------------------------------------------------------
-# Save for Surprise
-filtered_interactions = dedup[['user_id', 'food_id', 'rating', 'food_name', 'calories', 'category']].copy()
+# === SAVE ===
+cols_to_save = ['user_id', 'food_id', 'rating', 'food_name'] + nutrient_cols + ['category']
+filtered_interactions = interactions[cols_to_save].copy()
 filtered_interactions.to_csv(INTERACTIONS_CSV, index=False)
-print(f"Saved → {INTERACTIONS_CSV}")
+print(f"Saved {len(cols_to_save)} columns → {INTERACTIONS_CSV}")
 
-matrix_df.to_csv(MATRIX_CSV)
-save_npz(SPARSE_NPZ, sparse)
-pd.Series(user_to_idx).to_csv(USER_MAP_CSV)
-pd.Series(item_to_idx).to_csv(ITEM_MAP_CSV)
-
-print("\nAll done! Files in", OUTPUT_DIR)
+# After merging calories
+print(f"Added Energy (KCAL): {df['Energy (KCAL)'].notna().sum()} values")

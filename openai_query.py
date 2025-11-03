@@ -39,9 +39,11 @@ _, model = load(MODEL_PATH)
 # 1. Parse query with OpenAI
 # ------------------------------------------------------------------
 def parse_query_with_openai(query: str) -> dict:
+    
     prompt = f"""
     Extract structured filters from the user query and return ONLY a JSON object:
-    - max_calories: number or null
+    - max_calories: number
+    - min_protein: number
     - meal_type: "breakfast"|"lunch"|"dinner"|"snack"|null
     - diet: "healthy"|"vegetarian"|"keto"|"low_carb"|null
     - keywords: list of food names (e.g. ["chicken","salmon"])
@@ -76,15 +78,23 @@ def get_recommendations_with_query(user_id: int, query: str, top_n: int = 10):
         row = interactions[interactions['food_id'] == food_id].iloc[0]
         name = food_lookup.get(food_id, "Unknown food")
 
-        # Calorie filter — only apply if calorie data exists
+        # === DEBUG (remove later) ===
+        print(f"Checking: {name} | Cal: {row.get('Energy (KCAL)')}")    
+        
+        # === FILTER BY NUTRIENTS ===
         if filters.get("max_calories") is not None:
-            cal = row.get("calories")
+            cal = row.get("Energy (KCAL)")
             if pd.notna(cal) and cal > filters["max_calories"]:
                 continue
-            # If cal is NaN, we *allow* it (since we don't know)
+
+        #if filters.get("min_protein") is not None:
+        #    prot = row.get("Protein (G)")
+        #    if pd.notna(prot) and prot < filters["min_protein"]:
+        #        continue
 
         if filters.get("keywords"):
-            name_lower = name.lower()
+            name_str = str(name)  # ← FORCE STRING
+            name_lower = name_str.lower()
             if not any(k.lower() in name_lower for k in filters["keywords"]):
                 continue
 
