@@ -1,77 +1,136 @@
+/* static/css/style.css */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+/* ==== REMOVE TOP GAP ==== */
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 100%;
+}
+
+/* Optional: smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+* {
+  font-family: 'Poppins', sans-serif;
+}
+
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #f4f7f9;
-  color: #333;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
   margin: 0;
-  padding: 20px;
 }
 
-.container {
-  max-width: 800px;
-  margin: auto;
-  background: white;
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-h1 {
-  text-align: center;
-  color: #2c6fbb;
-}
-
-form {
-  display: flex;
-  gap: 10px;
-  margin: 20px 0;
-}
-
-input[type="number"] {
-  padding: 10px;
-  font-size: 16px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  width: 120px;
-}
-
-button {
-  padding: 10px 20px;
-  background: #2c6fbb;
+/* Hero */
+.hero-section {
+  background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1498837167921-10a1f2b2b8e6?ixlib=rb-4.0.3&auto=format&fit=crop&q=80') center/cover;
+  border-radius: 0 0 50px 50px;
   color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
 }
 
-button:hover {
-  background: #1a5ba3;
+/* Glassmorphism */
+.glass-card {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
+.glass-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
 }
 
-th, td {
-  padding: 12px;
-  border-bottom: 1px solid #eee;
-  text-align: left;
+.glass-check {
+  background: rgba(255,255,255,0.1);
+  padding: 10px;
+  border-radius: 12px;
+  transition: 0.3s;
 }
 
-th {
-  background: #f0f7ff;
-  color: #2c6fbb;
+.glass-check:hover {
+  background: rgba(255,255,255,0.25);
 }
 
-.error {
-  color: #d32f2f;
-  font-weight: bold;
+/* Meal Cards */
+.meal-card {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  transition: all 0.4s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-details {
-  margin-top: 30px;
-  font-size: 0.9em;
-  color: #666;
+.meal-card:hover {
+  transform: translateY(-10px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+}
+
+.meal-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 5px;
+  background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+}
+
+.icon-circle {
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  font-size: 1.5rem;
+  color: white;
+}
+
+.icon-circle.breakfast { background: linear-gradient(135deg, #ff9a9e, #fad0c4); }
+.icon-circle.lunch     { background: linear-gradient(135deg, #a1c4fd, #c2e9fb); }
+.icon-circle.dinner    { background: linear-gradient(135deg, #ffecd2, #fcb69f); }
+
+/* Badges */
+.badge.bg-gradient {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.tag-healthy { background: #10b981; color: white; }
+.tag-lunch   { background: #f59e0b; color: white; }
+.tag-vegan   { background: #84cc16; color: white; }
+.tag-low_carb { background: #06b6d4; color: white; }
+
+/* Animations */
+.animate-fade {
+  animation: fadeIn 0.8s ease-out;
+}
+
+.delay-1 { animation-delay: 0.2s; }
+.delay-2 { animation-delay: 0.4s; }
+.delay-3 { animation-delay: 0.6s; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero-section h1 { font-size: 2.5rem; }
+  .meal-card { margin-bottom: 1.5rem; }
 }

@@ -1,32 +1,67 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Food Recommender</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-  <div class="container">
-    <h1>USDA Food Recommender</h1>
-    <form method="POST">
-      <input type="number" name="user_id" placeholder="User ID" value="{{ user_id }}" required>
-      <input type="text" name="query" placeholder="e.g., healthy under 700 calories" value="{{ query }}">
-      <button>Get Recommendations</button>
-    </form>
-
-    {% if recs %}
-    <h2>Top {{ recs|length }} for User {{ user_id }}</h2>
-    <table>
-      <tr><th>#</th><th>Food</th><th>Rating</th><th>Calories</th></tr>
-      {% for fid, name, rating, cal in recs %}
-      <tr>
-        <td>{{ loop.index }}</td>
-        <td>{{ name }} (ID: {{ fid }})</td>
-        <td>{{ rating }}</td>
-        <td>{% if cal %}{{ "%.0f" % cal }} kcal{% else %}—{% endif %}</td>
-      </tr>
-      {% endfor %}
-    </table>
-    {% endif %}
+{% extends "base.html" %}
+{% block content %}
+<div class="hero-section">
+  <div class="container text-center py-1">
+    <h1 class="display-4 fw-bold text-white mb-3 animate-fade">NutriPlan AI</h1>
+    <p class="lead text-white mb-5 animate-fade delay-1">Your Personal USDA-Powered Meal Planner</p>
   </div>
-</body>
-</html>
+</div>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+      <div class="glass-card p-4 shadow-lg">
+        <h3 class="text-primary mb-4 text-center">
+          <i class="bi bi-clipboard-check"></i> Build Your Plan
+        </h3>
+        <form method="POST">
+          <div class="mb-4">
+            <label class="form-label fw-semibold text-dark">
+              <i class="bi bi-fire text-danger"></i> Daily Calories
+            </label>
+            <input type="number" name="calories" class="form-control form-control-lg text-center" 
+                   value="" min="1200" max="4000" required>
+            <small class="text-muted">e.g., 1800, 2500</small>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold text-dark">
+              <i class="bi bi-flower1 text-success"></i> Preferences
+            </label>
+            <div class="row g-3">
+              <div class="col-6">
+                <div class="form-check glass-check">
+                  <input class="form-check-input" type="checkbox" name="preferences" value="vegan" id="vegan">
+                  <label class="form-check-label" for="vegan">Vegan</label>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="form-check glass-check">
+                  <input class="form-check-input" type="checkbox" name="preferences" value="low_carb" id="low_carb">
+                  <label class="form-check-label" for="low_carb">Low-Carb</label>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="form-check glass-check">
+                  <input class="form-check-input" type="checkbox" name="preferences" value="healthy" id="healthy">
+                  <label class="form-check-label" for="healthy">Healthy</label>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="form-check glass-check">
+                  <input class="form-check-input" type="checkbox" name="preferences" value="lunch" id="lunch">
+                  <label class="form-check-label" for="lunch">Lunch</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm animate-pulse">
+            <i class="bi bi-magic"></i> Generate My Plan
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
